@@ -6,7 +6,27 @@ const { validate: isUuid } = require("uuid"); // Per validare UUID
 const app = express();
 const prisma = new PrismaClient();
 
-app.use(cors());
+// Configurazione CORS
+const allowedOrigins = [
+  process.env.FRONTEND_URL || "https://to-do-list-fatjons-projects-d8817ccf.vercel.app/", // URL del frontend
+  process.env.BACKEND_URL || "https://todo-list-bice-rho-61.vercel.app/"  // URL del backend (opzionale)
+];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Consenti richieste senza origine (es. Postman) o da origini consentite
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Non permesso dall'origine CORS"));
+      }
+    },
+    methods: ["GET", "POST", "PATCH"], // Metodi HTTP consentiti
+    credentials: true, // Se necessario per cookie o autenticazione
+  })
+);
+
 app.use(express.json());
 
 // API per ottenere tutte le attività
