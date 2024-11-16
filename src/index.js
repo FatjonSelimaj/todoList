@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const { PrismaClient } = require("@prisma/client");
+const { validate: isUuid } = require("uuid"); // Per validare UUID
 
 const app = express();
 const prisma = new PrismaClient();
@@ -10,30 +11,66 @@ app.use(express.json());
 
 // API per ottenere tutte le attività
 app.get("/tasks", async (req, res) => {
-  const tasks = await prisma.task.findMany();
-  res.json(tasks);
+  try {
+    const tasks = await prisma.task.findMany();
+    res.json(tasks);
+  } catch (error) {
+    console.error("Errore durante il recupero delle attività:", error);
+    res.status(500).json({ error: "Errore interno del server" });
+  }
 });
 
 // API per creare una nuova attività
 app.post("/tasks", async (req, res) => {
   const { title, description } = req.body;
-  const task = await prisma.task.create({
-    data: { title, description },
-  });
-  res.json(task);
+
+  if (!title) {
+    return res.status(400).json({ error: "Il campo 'title' è obbligatorio." });
+  }
+
+  try {
+    const task = await prisma.task.create({
+      data: {
+        title,
+        description: description || null,
+      },
+    });
+
+    res.status(201).json(task);
+  } catch (error) {
+    console.error("Errore durante la creazione dell'attività:", error);
+    res.status(500).json({ error: "Errore interno del server" });
+  }
 });
 
 // API per aggiornare lo stato di completamento
 app.patch("/tasks/:id", async (req, res) => {
   const { id } = req.params;
-  const task = await prisma.task.update({
-    where: { id: Number(id) },
-    data: { completed: true },
-  });
-  res.json(task);
+
+  if (!isUuid(id)) {
+    return res.status(400).json({ error: "ID non valido." });
+  }
+
+  try {
+    const existingTask = await prisma.task.findUnique({
+      where: { id },
+    });
+
+    if (!existingTask) {
+      return res.status(404).json({ error: "Attività non trovata." });
+    }
+
+    const updatedTask = await prisma.task.update({
+      where: { id },
+      data: { completed: !existingTask.completed },
+    });
+
+    res.json(updatedTask);
+  } catch (error) {
+    console.error("Errore durante l'aggiornamento dello stato di completamento:", error);
+    res.status(500).json({ error: "Errore interno del server" });
+  }
 });
 
-const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => {
-  console.log(`Backend avviato su http://localhost:${PORT}`);
-});
+// Esporta l'app per Vercel
+module.exports = app;
