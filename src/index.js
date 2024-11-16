@@ -1,7 +1,6 @@
 const express = require("express");
 const cors = require("cors");
 const { PrismaClient } = require("@prisma/client");
-const { validate: isUuid } = require("uuid");
 const Joi = require("joi"); // Per validare i dati di input
 
 const app = express();
@@ -34,16 +33,27 @@ prisma.$on("error", (e) => {
   console.error("Errore Prisma:", e);
 });
 
+// Funzione per validare un MongoDB ObjectId
+const isMongoId = (id) => /^[a-f\d]{24}$/i.test(id);
+
 // Schema di validazione per task
 const taskSchema = Joi.object({
   title: Joi.string().min(1).required(),
   description: Joi.string().allow(null, ""),
 });
 
-// API per ottenere tutte le attività
+// API per ottenere tutte le attività con paginazione
 app.get("/tasks", async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = 10;
+  const skip = (page - 1) * limit;
+
   try {
-    const tasks = await prisma.task.findMany();
+    const tasks = await prisma.task.findMany({
+      skip,
+      take: limit,
+      orderBy: { createdAt: "desc" },
+    });
     res.json(tasks);
   } catch (error) {
     console.error("Errore durante il recupero delle attività:", error.message);
@@ -79,7 +89,7 @@ app.post("/tasks", async (req, res) => {
 app.patch("/tasks/:id", async (req, res) => {
   const { id } = req.params;
 
-  if (!isUuid(id)) {
+  if (!isMongoId(id)) {
     return res.status(400).json({ error: "ID non valido." });
   }
 
@@ -116,7 +126,9 @@ app.use((err, req, res, next) => {
 // Middleware per gestire errori generici
 app.use((err, req, res, next) => {
   console.error("Errore generale:", err.message);
-  res.status(500).json({ error: "Errore interno del server" });
+  const errorMessage =
+    process.env.NODE_ENV === "production" ? "Errore interno del server" : err.message;
+  res.status(500).json({ error: errorMessage });
 });
 
 // Esporta l'app per Vercel

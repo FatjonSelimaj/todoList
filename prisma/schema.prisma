@@ -8,7 +8,7 @@ datasource db {
 }
 
 model Task {
-  id          String   @id @default(uuid()) @map("_id") // MongoDB usa UUID
+  id          String @id @default(uuid()) @map("_id")
   title       String
   description String?
   completed   Boolean  @default(false)
