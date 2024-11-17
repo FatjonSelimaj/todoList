@@ -8,7 +8,7 @@ const prisma = new PrismaClient();
 
 // Configurazione CORS
 const allowedOrigins = [
-  process.env.FRONTEND_URL || "https://to-do-list-fatjons-projects-d8817ccf.vercel.app",
+  process.env.FRONTEND_URL || "https://to-do-list-fatjons-projects-d8817ccf.vercel.app/",
   process.env.BACKEND_URL || "https://todo-list-bice-rho-61.vercel.app",
 ];
 
