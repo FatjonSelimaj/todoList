@@ -8,7 +8,7 @@ datasource db {
 }
 
 model Task {
-  id          String @id @default(uuid()) @map("_id")
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
   title       String
   description String?
   completed   Boolean  @default(false)
